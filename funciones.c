@@ -123,7 +123,7 @@ void monitoreo_actual() {
 float promedio_ponderado(float datos[], int n) {
     float suma = 0, peso = 0;
     for (int i = 0; i < n; i++) {
-        int w = i + 1; // más peso a días recientes
+        int w = i + 1; 
         suma += datos[i] * w;
         peso += w;
     }
@@ -169,10 +169,9 @@ void alertas_preventivas() {
             actual[z].so2  > limites.so2  ||
             actual[z].co2  > limites.co2) {
 
-            printf("ALERTA en Zona %d Los niveles de PM2.5 han alcanzado limites, "
-       "superando el limite diario de la OMS. Se recomienda a personas con "
-       "afecciones respiratorias y adultos mayores evitar actividades prolongadas al aire libre. "
-       "Considere el uso de transporte publico para reducir emisiones.\n", z + 1);
+            printf("ALERTA en %s: Los niveles de contaminacion han superado los limites de la OMS.\n"
+       "Se recomienda evitar actividades prolongadas al aire libre y reducir emisiones.\n",
+       nombres_zonas[z]);
         }
     }
 }
@@ -204,17 +203,27 @@ void recomendaciones() {
     printf("\n--- RECOMENDACIONES ---\n");
 
     for (int z = 0; z < ZONAS; z++) {
+        int hay_recomendacion = 0;
+
+        printf("\n%s:\n", nombres_zonas[z]);
+
         if (actual[z].pm25 > limites.pm25) {
-            printf("Zona %d: Suspender actividades al aire libre\n", nombres_zonas[z]);
+            printf("- Evitar actividades prolongadas al aire libre\n");
+            hay_recomendacion = 1;
         }
         if (actual[z].no2 > limites.no2) {
-            printf("Zona %d: Reducir tráfico vehicular\n", nombres_zonas[z]);
+            printf("- Reducir el uso de transporte vehicular\n");
+            hay_recomendacion = 1;
         }
         if (actual[z].so2 > limites.so2) {
-            printf("Zona %d: Cierre temporal de industrias\n", nombres_zonas[z]);
+            printf("- Limitar actividades industriales\n");
+            hay_recomendacion = 1;
         }
+
+        if (!hay_recomendacion) {
+            printf("- Niveles aceptables. No se requieren acciones\n");
+        }}
     }
-}
 
 /* ======================= */
 void exportar_datos() {

@@ -1,13 +1,15 @@
+#include <stdio.h>
 #include "funciones.h"
 
 int main() {
     int op;
 
-    cargar_datos_historicos();
+    cargar_datos_quito();
+
 
     do {
         menu();
-        printf("Seleccione una opción: ");
+        printf("Seleccione una opcion: ");
         scanf("%d", &op);
 
         switch (op) {
@@ -18,7 +20,7 @@ int main() {
             case 5: recomendaciones(); break;
             case 6: exportar_datos(); break;
             case 0: printf("Saliendo...\n"); break;
-            default: printf("Opción inválida\n");
+            default: printf("Opcion invalida\n");
         }
 
     } while (op != 0);

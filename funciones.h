@@ -33,6 +33,7 @@ void alertas_preventivas();
 void promedios_historicos();
 void recomendaciones();
 void exportar_datos();
+void cargar_datos_quito();
 
 /* Utilidades */
 float promedio_ponderado(float datos[], int n);

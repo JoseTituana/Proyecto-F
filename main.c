@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "funciones.h"
-
+/*cc .\main.c .\funciones.c -o main*/
 int main() {
     int op;
 
@@ -14,12 +14,13 @@ int main() {
 
         switch (op) {
             case 1: monitoreo_actual(); break;
-            case 2: prediccion_futura(); break;
+            case 2: ingresar_datos_zona(); break;
             case 3: alertas_preventivas(); break;
             case 4: promedios_historicos(); break;
             case 5: recomendaciones(); break;
             case 6: exportar_datos(); break;
-            case 0: printf("Saliendo...\n"); break;
+            case 7: prediccion_futura(); break;
+            case 0: printf("hasta pronto \n"); break;
             default: printf("Opcion invalida\n");
         }
 

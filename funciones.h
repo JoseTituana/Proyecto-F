@@ -23,7 +23,6 @@ typedef struct {
 void menu();
 
 /* Inicialización */
-void cargar_datos_historicos();
 void mostrar_zonas();
 
 /* Opciones del menú */
@@ -34,6 +33,8 @@ void promedios_historicos();
 void recomendaciones();
 void exportar_datos();
 void cargar_datos_quito();
+void ingresar_datos_zona();
+
 
 /* Utilidades */
 float promedio_ponderado(float datos[], int n);

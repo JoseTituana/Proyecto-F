@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 /* Límites OMS */
-const Contaminacion limites = { 400, 20, 40, 15 };
+const Contaminacion limites = { 450, 20, 40, 25 };
 /* ================= DATOS REALES QUITO ================= */
 const char *nombres_zonas[ZONAS] = {
     "Centro Historico",
@@ -72,18 +72,19 @@ Contaminacion historico[ZONAS][DIAS];
 Contaminacion actual[ZONAS];
 Clima clima_actual;
 
-/* ======================= */
+
 void menu() {
     printf("\n--- SISTEMA DE MONITOREO AMBIENTAL ---\n");
     printf("1. Monitoreo de contaminacion actual\n");
-    printf("2. Prediccion de niveles futuros (24h)\n");
+    printf("2. Ingreso de datos actuales (24h)\n");
     printf("3. Alertas preventivas\n");
     printf("4. Promedios historicos (30 dias)\n");
     printf("5. Recomendaciones\n");
     printf("6. Exportar datos\n");
+    printf("7. Prediccion de niveles futuros (24h)\n");
     printf("0. Salir\n");
 }
-/* ======================= */
+
 void mostrar_zonas() {
     printf("\nZonas:\n");
     printf("1. Centro Historico\n");
@@ -107,7 +108,7 @@ void cargar_datos_quito() {
     }
 }
 
-/* ======================= */
+
 void monitoreo_actual() {
     printf("\n--- MONITOREO ACTUAL ---\n");
     for (int z = 0; z < ZONAS; z++) {
@@ -119,7 +120,7 @@ void monitoreo_actual() {
     }
 }
 
-/* ======================= */
+
 float promedio_ponderado(float datos[], int n) {
     float suma = 0, peso = 0;
     for (int i = 0; i < n; i++) {
@@ -130,14 +131,19 @@ float promedio_ponderado(float datos[], int n) {
     return suma / peso;
 }
 
-/* ======================= */
+
 float factor_climatico(Clima c) {
     return 1 + (c.temperatura / 100) - (c.viento / 20) + (c.humedad / 200);
 }
 
-/* ======================= */
+const char* interpretar_contaminante(float valor, float limite) {
+    if (valor <= 0.5 * limite) return "Bajo";
+    else if (valor <= limite) return "Moderado";
+    else return "Alto";
+}
+
 void prediccion_futura() {
-    printf("\n--- PREDICCIÓN 24 HORAS ---\n");
+    printf("\n--- PREDICCION 24 HORAS ---\n");
 
     float f = factor_climatico(clima_actual);
 
@@ -151,52 +157,199 @@ void prediccion_futura() {
             pm25[d] = historico[z][d].pm25;
         }
 
-        printf("\n%s:\n", nombres_zonas[z]);
-        printf("CO2: %.1f\n", promedio_ponderado(co2, DIAS) * f);
-        printf("SO2: %.1f\n", promedio_ponderado(so2, DIAS) * f);
-        printf("NO2: %.1f\n", promedio_ponderado(no2, DIAS) * f);
-        printf("PM2.5: %.1f\n", promedio_ponderado(pm25, DIAS) * f);
+        float co2_pred = promedio_ponderado(co2, DIAS) * f;
+        float so2_pred = promedio_ponderado(so2, DIAS) * f;
+        float no2_pred = promedio_ponderado(no2, DIAS) * f;
+        float pm_pred  = promedio_ponderado(pm25, DIAS) * f;
+
+        printf("\nZona: %s\n", nombres_zonas[z]);
+        printf("Prediccion proximas 24h:\n");
+        printf(" CO2:   %.1f ppm [%s]\n", co2_pred, interpretar_contaminante(co2_pred, limites.co2));
+        printf(" SO2:   %.1f ppb [%s]\n", so2_pred, interpretar_contaminante(so2_pred, limites.so2));
+        printf(" NO2:   %.1f ppb [%s]\n", no2_pred, interpretar_contaminante(no2_pred, limites.no2));
+        printf(" PM2.5: %.1f µg/m3 [%s]\n", pm_pred, interpretar_contaminante(pm_pred, limites.pm25));
+
+        // Recomendación rápida basada en los límites
+        if (co2_pred > limites.co2 || so2_pred > limites.so2 ||
+            no2_pred > limites.no2 || pm_pred > limites.pm25) {
+            printf(" -> Recomendacion: Evitar actividades al aire libre\n");
+        } else {
+            printf(" -> Recomendacion: Niveles aceptables\n");
+        }
     }
 }
-
-/* ======================= */
 void alertas_preventivas() {
-    printf("\n--- ALERTAS ---\n");
+    int hay_alertas = 0;
+
+    printf("\n--- ALERTAS PREVENTIVAS ---\n");
+
 
     for (int z = 0; z < ZONAS; z++) {
         if (actual[z].pm25 > limites.pm25 ||
             actual[z].no2  > limites.no2  ||
             actual[z].so2  > limites.so2  ||
             actual[z].co2  > limites.co2) {
-
-            printf("ALERTA en %s: Los niveles de contaminacion han superado los limites de la OMS.\n"
-       "Se recomienda evitar actividades prolongadas al aire libre y reducir emisiones.\n",
-       nombres_zonas[z]);
+            hay_alertas = 1;
+            break;
         }
     }
+
+
+    if (!hay_alertas) {
+        printf("No se detectan alertas. Los niveles se mantienen dentro de los limites aceptables.\n");
+        return;
+    }
+
+    printf("Se detectaron niveles de contaminacion superiores a los limites de la OMS.\n");
+    printf("\nZonas afectadas:\n");
+
+    for (int z = 0; z < ZONAS; z++) {
+        int zona_en_alerta = 0;
+
+        if (actual[z].pm25 > limites.pm25) zona_en_alerta = 1;
+        if (actual[z].no2  > limites.no2)  zona_en_alerta = 1;
+        if (actual[z].so2  > limites.so2)  zona_en_alerta = 1;
+        if (actual[z].co2  > limites.co2)  zona_en_alerta = 1;
+
+        if (zona_en_alerta) {
+            printf("- %s (", nombres_zonas[z]);
+
+            int primero = 1;
+
+            if (actual[z].pm25 > limites.pm25) {
+                printf("PM2.5");
+                primero = 0;
+            }
+            if (actual[z].no2 > limites.no2) {
+                if (!primero) printf(", ");
+                printf("NO2");
+                primero = 0;
+            }
+            if (actual[z].so2 > limites.so2) {
+                if (!primero) printf(", ");
+                printf("SO2");
+                primero = 0;
+            }
+            if (actual[z].co2 > limites.co2) {
+                if (!primero) printf(", ");
+                printf("CO2");
+            }
+
+            printf(")\n");
+        }
+    }
+
+    printf("\nRecomendaciones generales:\n");
+    printf("- Evitar actividades prolongadas al aire libre\n");
+    printf("- Reducir el uso de transporte vehicular\n");
+    printf("- Controlar emisiones industriales\n");
+}
+
+/* ============AGREGAR DATOS ACTUALES=========== */
+void ingresar_datos_zona() {
+    int zona;
+    Contaminacion nuevo;
+
+    mostrar_zonas();
+    printf("Seleccione la zona (1-5): ");
+    scanf("%d", &zona);
+
+    if (zona < 1 || zona > ZONAS) {
+        printf("Zona invalida.\n");
+        return;
+    }
+
+    zona--; // ajustar a índice 0–4
+
+    /* Validación de rangos */
+    do {
+        printf("Ingrese CO2 (300 - 600): ");
+        scanf("%f", &nuevo.co2);
+    } while (nuevo.co2 < 300 || nuevo.co2 > 600);
+
+    do {
+        printf("Ingrese SO2 (0 - 50): ");
+        scanf("%f", &nuevo.so2);
+    } while (nuevo.so2 < 0 || nuevo.so2 > 50);
+
+    do {
+        printf("Ingrese NO2 (0 - 100): ");
+        scanf("%f", &nuevo.no2);
+    } while (nuevo.no2 < 0 || nuevo.no2 > 100);
+
+    do {
+        printf("Ingrese PM2.5 (0 - 150): ");
+        scanf("%f", &nuevo.pm25);
+    } while (nuevo.pm25 < 0 || nuevo.pm25 > 150);
+
+    /* Desplazar histórico (eliminar día más antiguo) */
+    for (int d = 0; d < DIAS - 1; d++) {
+        historico[zona][d] = historico[zona][d + 1];
+    }
+
+    /* Insertar nuevo dato como día más reciente */
+    historico[zona][DIAS - 1] = nuevo;
+
+    /* Actualizar datos actuales */
+    actual[zona] = nuevo;
+
+    printf("\nDatos actualizados correctamente para %s\n", nombres_zonas[zona]);
 }
 
 /* ======================= */
 void promedios_historicos() {
-    printf("\n--- PROMEDIOS HISTÓRICOS (30 DÍAS) ---\n");
+    printf("\n--- ANALISIS HISTORICO DE CONTAMINACION (30 DIAS) ---\n");
 
     for (int z = 0; z < ZONAS; z++) {
+
+        float min_co2 = historico[z][0].co2;
+        float max_co2 = historico[z][0].co2;
+        float min_so2 = historico[z][0].so2;
+        float max_so2 = historico[z][0].so2;
+        float min_no2 = historico[z][0].no2;
+        float max_no2 = historico[z][0].no2;
+        float min_pm  = historico[z][0].pm25;
+        float max_pm  = historico[z][0].pm25;
+
         float sum_co2 = 0, sum_so2 = 0, sum_no2 = 0, sum_pm = 0;
 
         for (int d = 0; d < DIAS; d++) {
-            sum_co2 += historico[z][d].co2;
-            sum_so2 += historico[z][d].so2;
-            sum_no2 += historico[z][d].no2;
-            sum_pm  += historico[z][d].pm25;
+            float co2  = historico[z][d].co2;
+            float so2  = historico[z][d].so2;
+            float no2  = historico[z][d].no2;
+            float pm25 = historico[z][d].pm25;
+
+            sum_co2 += co2;
+            sum_so2 += so2;
+            sum_no2 += no2;
+            sum_pm  += pm25;
+
+            if (co2 < min_co2) min_co2 = co2;
+            if (co2 > max_co2) max_co2 = co2;
+
+            if (so2 < min_so2) min_so2 = so2;
+            if (so2 > max_so2) max_so2 = so2;
+
+            if (no2 < min_no2) min_no2 = no2;
+            if (no2 > max_no2) max_no2 = no2;
+
+            if (pm25 < min_pm) min_pm = pm25;
+            if (pm25 > max_pm) max_pm = pm25;
         }
 
         printf("\n%s:\n", nombres_zonas[z]);
-        printf("CO2: %.1f\n", sum_co2 / DIAS);
-        printf("SO2: %.1f\n", sum_so2 / DIAS);
-        printf("NO2: %.1f\n", sum_no2 / DIAS);
-        printf("PM2.5: %.1f\n", sum_pm / DIAS);
+        printf("Durante los ultimos 30 dias:\n");
+        printf("CO2 se mantuvo entre %.1f y %.1f con un promedio mensual de %.1f\n",
+               min_co2, max_co2, sum_co2 / DIAS);
+        printf("SO2 se mantuvo entre %.1f y %.1f con un promedio mensual de %.1f\n",
+               min_so2, max_so2, sum_so2 / DIAS);
+        printf("NO2 se mantuvo entre %.1f y %.1f con un promedio mensual de %.1f\n",
+               min_no2, max_no2, sum_no2 / DIAS);
+        printf("PM2.5 se mantuvo entre %.1f y %.1f con un promedio mensual de %.1f\n",
+               min_pm, max_pm, sum_pm / DIAS);
     }
 }
+
 
 /* ======================= */
 void recomendaciones() {
